@@ -2,6 +2,7 @@
 import React from 'react';
 import { Play, Music, Users, Heart, Mic2, ArrowRight } from 'lucide-react';
 
+
 export default function LandingPage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-800 to-black text-white">
@@ -145,7 +146,7 @@ export default function LandingPage() {
     );
 }
 
-const FeatureCard = ({ icon, title, description }: { icon: any, title: string, description: string }) => (
+const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
     <div className="p-6 bg-purple-900/30 rounded-lg">
         <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-4">
             {icon}

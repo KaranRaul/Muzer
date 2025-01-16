@@ -4,10 +4,10 @@ export default function StreamViewSkeleton() {
     return (
         <div className="flex justify-center mx-auto p-4 bg-gray-900 min-h-screen text-white animate-pulse">
             <div className="max-w-7xl w-full">
-                <div className="flex justify-between items-center mb-4">
+                {/* <div className="flex justify-between items-center mb-4">
                     <div className="h-6 w-1/3 bg-gray-700 rounded"></div>
                     <div className="h-10 w-24 bg-purple-600 rounded"></div>
-                </div>
+                </div> */}
 
                 <div className="flex gap-8">
                     {/* Currently Playing Skeleton */}

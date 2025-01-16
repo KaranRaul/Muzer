@@ -52,9 +52,10 @@ export async function POST(res: NextRequest) {
         return NextResponse.json({
             message: "stream downvoted"
         });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({
-            message: "error while upvoting"
+            message: "error while upvoting",
+            _error
         }, {
             status: 400
 

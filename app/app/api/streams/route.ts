@@ -1,7 +1,9 @@
 import { prismaCLient } from "@/app/lib/db";
+import { authOptions } from "@/lib/authOptions";
+import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { use } from "react";
-// @ts-ignore
+
+// @ts-expect-error thil lib does not have types
 import youtubesearchapi from 'youtube-search-api';
 import { z } from "zod";
 
@@ -63,10 +65,9 @@ export async function POST(req: NextRequest) {
     })
 };
 
-
-
 export async function GET(req: NextRequest) {
     const creatorId = req.nextUrl.searchParams.get('creatorId') || "";
+    const session = await getServerSession(authOptions);
     const user = await prismaCLient.user.findFirst({
         where: {
             id: creatorId
@@ -78,16 +79,26 @@ export async function GET(req: NextRequest) {
             message: "not a valid user"
         }, { status: 401 })
     }
-
+    console.log(session?.user.id)
+    console.log(creatorId)
     const streams = await prismaCLient.streams.findMany({
         where: {
             userId: creatorId
         },
         include: {
-            upvotes: true,
-            _count: true
+            _count: {
+                select: {
+                    upvotes: true
+                }
+            },
+            upvotes: {
+                where: {
+                    userId: session?.user.id
+                }
+            }
         }
-    });
+    })
+
 
     return NextResponse.json({
         streams: streams.map(({ _count, ...rest }) => ({
@@ -115,7 +126,8 @@ export async function DELETE(req: NextRequest) {
     const data = await req.json()
 
     try {
-        const streams = await prismaCLient.streams.delete({
+        console.log(data)
+        await prismaCLient.streams.delete({
             where: {
                 id: data.streamId
             }
@@ -125,6 +137,7 @@ export async function DELETE(req: NextRequest) {
             message: "stream deleted succefully"
         })
     } catch (error) {
+        console.log(error)
         return NextResponse.json({
             message: "error while deleting stream",
             error

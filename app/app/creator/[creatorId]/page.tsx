@@ -1,9 +1,17 @@
+import StreamView from "@/components/StreamView";
 
-import StreamView from "@/components/StreamView"
+interface PageProps {
+    params: Promise<{
+        creatorId: string;
+    }>;
+}
 
+export default async function Page({ params }: PageProps) {
+    const { creatorId } = await params;
 
-export default function page({ params: { creatorId } }: { params: { creatorId: string } }) {
-    return <div>
-        <StreamView creatorId={creatorId} />
-    </div>
+    return (
+        <div>
+            <StreamView creatorId={creatorId} playControl={false} />
+        </div>
+    );
 }

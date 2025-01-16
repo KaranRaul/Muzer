@@ -1,8 +1,11 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { ThumbsUp, ThumbsDown, Share2, ArrowUp, ArrowBigDown, ArrowDown01, ChevronUp, ChevronDown } from 'lucide-react';
+import { Share2, ChevronUp, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { Appbar } from './Appbar';
+import StreamViewSkeleton from '@/app/skeleton/StreamViewSkeleton';
+import Image from 'next/image';
+
 
 interface Video {
     "id": string,
@@ -18,46 +21,92 @@ interface Video {
     "haveUpvoted": boolean
 }
 
-const INTERVAL_TIME_ME = 1000 * 15;
+const INTERVAL_TIME_ME = 1000 * 10;
 
-export default function StreamView({ creatorId }: { creatorId: string }) {
+export default function StreamView({ creatorId, playControl }: { creatorId: string, playControl: boolean }) {
     const [currentVideo, setCurrentVideo] = useState<string | null>('');
-    const [preview, setPreview] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const [newVideo, setNewVideo] = useState<string | null>()
     const [showShareToast, setShowShareToast] = useState(false);
     const [queue, setQueue] = useState<Video[]>([]);
+    const [addSongLoading, setAddSongLoading] = useState(false);
     async function refreshStreams() {
         try {
             const response = await axios.get(`/api/streams?creatorId=${creatorId}`, {
                 withCredentials: true
             });
-            setQueue(response.data.streams.sort((a: Video, b: Video) => { a.upvotes > b.upvotes ? -1 : 1 }))
+            setLoading(false);
+            // console.log(response.data.streams)
+            setQueue(response.data.streams.sort((a: Video, b: Video) => a.upvotes > b.upvotes ? -1 : 1))
+            // console.log(response.data.streams.sort((a: Video, b: Video) => a.upvotes > b.upvotes ? -1 : 1))
 
         } catch (error) {
             console.log(error)
         }
-
-
-        // console.log('data')
-        // console.log(response.data);
-        // return response.data;
     }
 
     async function playNext() {
         if (queue.length > 0) {
-            setCurrentVideo(queue[0].url);
-            await axios.delete(`/api/streams?creatorId=${creatorId}`, {
-                data: { streamId: queue[0].id }
-            });
-            setQueue(queue.slice(1))
+
+            console.log('reached')
+            const response = await axios.get(`/api/streams/nextStream?creatorId=${creatorId}`);
+
+            setCurrentVideo(null)
+            setCurrentVideo(response.data.url);
+            console.log(response)
+            refreshStreams();
         }
 
     }
+    useEffect(() => {
+        let player: YT.Player;
+        const onPlayerReady = (event: YT.PlayerEvent) => {
+            event.target.playVideo();
+        };
+
+
+        const onPlayerStateChange = async (event: YT.OnStateChangeEvent) => {
+            console.log(event)
+            if (event.data === YT.PlayerState.ENDED) {
+                if (playControl) await playNext(); // Call your playNext function when the video ends
+            }
+        };
+
+        const loadYouTubePlayer = () => {
+            if (!currentVideo || !window.YT) return;
+
+            player = new YT.Player("youtube-player", {
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange,
+                },
+            });
+            console.log(player)
+        };
+
+        // Load YouTube Player API script
+        if (!window.YT) {
+            const script = document.createElement("script");
+            script.src = "https://www.youtube.com/iframe_api";
+            script.async = true;
+            script.onload = loadYouTubePlayer;
+            document.body.appendChild(script);
+        } else {
+            loadYouTubePlayer();
+        }
+
+        return () => {
+            // Clean up the player instance if the component unmounts or `currentVideo` changes
+            if (player && typeof player.destroy === "function") {
+                player.destroy();
+            }
+        };
+    }, [currentVideo]);
 
 
     useEffect(() => {
         refreshStreams();
-        const interval = setInterval(() => {
+        setInterval(() => {
             refreshStreams();
         }, INTERVAL_TIME_ME)
     }, [])
@@ -88,8 +137,9 @@ export default function StreamView({ creatorId }: { creatorId: string }) {
     };
 
     const handleSubmit = async () => {
+        setAddSongLoading(true);
         if (newVideo) {
-            const respone = await axios.post('/api/streams', {
+            await axios.post('/api/streams', {
                 creatorId,
                 url: newVideo
             })
@@ -97,8 +147,14 @@ export default function StreamView({ creatorId }: { creatorId: string }) {
             // setCurrentVideo('');
             setNewVideo(null);
         }
+        setAddSongLoading(false)
     };
-
+    if (loading)
+        return
+    <div>
+        <Appbar />
+        <StreamViewSkeleton />
+    </div>
     return (
 
         <div className="flex justify-center mx-auto p-6 bg-gray-900 min-h-screen text-white">
@@ -129,24 +185,25 @@ export default function StreamView({ creatorId }: { creatorId: string }) {
                         <div className="aspect-video mb-4">
                             {currentVideo ? (
                                 <iframe
+                                    id="youtube-player"
                                     className="w-full h-full rounded"
-                                    src={`https://www.youtube.com/embed/${getVideoId(
-                                        currentVideo
-                                    )}`}
+                                    src={`https://www.youtube.com/embed/${getVideoId(currentVideo)}?autoplay=1&enablejsapi=1`}
+                                    allow="autoplay; encrypted-media"
                                     allowFullScreen
                                 />
+
                             ) : (
                                 <div className="w-full h-full bg-gray-700 flex items-center justify-center rounded">
                                     <span className="text-gray-400">No video playing</span>
                                 </div>
                             )}
                         </div>
-                        <button
+                        {playControl && <button
                             onClick={playNext}
                             className="w-full px-4 py-2 bg-green-600 rounded hover:bg-green-500"
                         >
                             Play Next
-                        </button>
+                        </button>}
                     </div>
 
                     {/* Add to Queue */}
@@ -163,9 +220,10 @@ export default function StreamView({ creatorId }: { creatorId: string }) {
                                 />
                                 <button
                                     onClick={handleSubmit}
+                                    disabled={addSongLoading}
                                     className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-500"
                                 >
-                                    Add
+                                    {addSongLoading ? 'Adding ' : 'Add'}
                                 </button>
                             </div>
                             {newVideo && (
@@ -190,11 +248,10 @@ export default function StreamView({ creatorId }: { creatorId: string }) {
                                         key={video.id}
                                         className="flex items-center gap-4 bg-gray-700 p-4 rounded"
                                     >
-                                        <img
-                                            src={video.smallImg}
-                                            alt={video.title}
-                                            className="w-32 rounded"
-                                        />
+                                        <Image src={video.bigImg} alt={video.title}
+                                            className="w-32 rounded" width={100} height={100} />
+
+
                                         <div className="flex-1">
                                             <h3 className="font-bold text-gray-300">{video.title}</h3>
                                         </div>

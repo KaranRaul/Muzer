@@ -1,14 +1,14 @@
 import { prismaCLient } from "@/app/lib/db";
 import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     const session = await getServerSession();
     if (!session?.user?.email)
         return NextResponse.json({ message: "erro while getting user data" }, { status: 401 })
     const user = await prismaCLient.user.findFirst({
         where: {
-            email: session?.user?.email
+            id: session?.user.id
         }
     });
 

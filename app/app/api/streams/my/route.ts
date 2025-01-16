@@ -1,6 +1,5 @@
 import { prismaCLient } from "@/app/lib/db";
 import { getServerSession } from "next-auth";
-import { getSession } from "next-auth/react";
 import { NextResponse } from "next/server";
 
 export async function GET() {

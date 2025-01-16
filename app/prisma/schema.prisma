@@ -34,15 +34,15 @@ model Streams {
   smallImg String
   bigImg   String
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Upvote {
   id       String  @id @default(uuid())
   userId   String
   streamId String
-  user     User    @relation(fields: [userId], references: [id])
-  stream   Streams @relation(fields: [streamId], references: [id])
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stream   Streams @relation(fields: [streamId], references: [id], onDelete: Cascade)
 
   @@unique([userId, streamId])
 }

@@ -3,7 +3,8 @@
 import StreamView from "@/components/StreamView";
 import axios from "axios";
 import { useEffect, useState } from "react";
-import StreamViewSkeleton from "../skeleton/StreamViewSkeleton";
+
+import { Appbar } from "@/components/Appbar";
 
 export default function Page() {
     const [creatorId, setCreatorId] = useState<string | null>(null);
@@ -24,12 +25,14 @@ export default function Page() {
     }, []);
 
     if (loading) {
-        return <div><StreamViewSkeleton /></div>;
+        return <div><Appbar />
+            {/* <StreamViewSkeleton /> */}
+        </div>;
     }
 
     return (
         <div>
-            <StreamView creatorId={creatorId!} />
+            <StreamView creatorId={creatorId!} playControl={true} />
         </div>
     );
 }
